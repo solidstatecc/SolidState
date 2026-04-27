@@ -1,0 +1,36 @@
+services:
+  api:
+    build: .
+    container_name: solidstate-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Required so the API can spawn sibling sandbox containers on the host.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - skills-stage:/tmp/solidstate-skills
+    command: ["uvicorn", "agent.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  telegram:
+    build: .
+    container_name: solidstate-telegram
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "agent.admin.telegram"]
+    depends_on:
+      - api
+
+  brain:
+    build: .
+    container_name: solidstate-brain
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "agent.brain"]
+    volumes:
+      # Mount your workspace so the brain can read/write files.
+      # Replace the host path with your actual workspace location on Hostinger.
+      - "/root/solidstate-workspace:/sandbox/.openclaw-data/workspace"
+
+volumes:
+  skills-stage:
